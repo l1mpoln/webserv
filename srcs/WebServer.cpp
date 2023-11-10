@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/08 14:03:16 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/10 20:28:15 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,16 +20,73 @@ std::string my_to_string(T value)
     return os.str();
 }
 
+WebServer::WebServer() 
+{
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_port = htons(8080);
+
+    bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
+    listen(serverSocket, 5);
+
+    fds.push_back({serverSocket, POLLIN});
+}
+
+WebServer::~WebServer() 
+{
+    close(serverSocket);
+}
+
+void WebServer::start() 
+{
+    while (1) {
+        int result = poll(fds.data(), fds.size(), -1);
+
+        if (result > 0) 
+        {
+            if (fds[0].revents & POLLIN) 
+            {
+                int clientSocket = accept(serverSocket, NULL, NULL);
+                fds.push_back({clientSocket, POLLIN});
+            }
+
+            for (size_t i = 1; i < fds.size(); ++i) 
+            {
+                if (fds[i].revents & POLLIN) 
+                {
+                    char buffer[1024];
+                    int bytesRead = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+                    if (bytesRead > 0) 
+                    {
+                        std::string request(buffer, bytesRead);
+                        handleRequest(fds[i].fd, request);
+                    } 
+                    else 
+                    {
+                        close(fds[i].fd);
+                        fds.erase(fds.begin() + i);
+                        --i;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void WebServer::handleRequest(int clientSocket, const std::string& request) 
 {
     std::istringstream requestStream(request);
     std::string method, path, version;
     requestStream >> method >> path >> version;
 
-    if (method == "GET") {
-        if (path == "/") 
+    if (method == "GET") 
+    {
+        if (path == "/")
             sendFileResponse(clientSocket, "data/index.html");
-        else if (path == "/hello") 
+        else if (path == "/hello")
             sendTextResponse(clientSocket, "Hello, World!");
         else
             sendNotFoundResponse(clientSocket);
@@ -38,17 +95,17 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
     {
         if (path == "/upload")
             handleFileUpload(clientSocket, requestStream);
-        else 
+        else
             sendNotFoundResponse(clientSocket);
     } 
     else if (method == "DELETE") 
     {
-        if (path == "/delete") 
+        if (path == "/delete")
             sendTextResponse(clientSocket, "File deleted successfully");
-        else 
+        else
             sendNotFoundResponse(clientSocket);
     } 
-    else 
+    else
         sendBadRequestResponse(clientSocket);
 }
 
@@ -87,9 +144,9 @@ void WebServer::sendBadRequestResponse(int clientSocket)
     send(clientSocket, response.c_str(), response.size(), 0);
 }
 
-void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestStream) {
+void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestStream) 
+{
     // Обработка загрузки файла
     // В этой функции вы можете прочитать тело запроса и сохранить файл на сервере.
     // Пример работы с загрузкой файлов не предоставляется в данном ответе.
 }
-  

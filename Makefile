@@ -6,12 +6,12 @@
 #    By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/11/08 13:14:05 by vkuzmin           #+#    #+#              #
-#    Updated: 2023/11/08 13:46:30 by vkuzmin          ###   ########.fr        #
+#    Updated: 2023/11/10 20:27:26 by vkuzmin          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC = c++
-CFLAGS = -Wall -Wextra --std=c++98 -fsanitize=address
+CFLAGS = --std=c++98 -fsanitize=address
 TARGET = webserv
 SRCS = srcs/main.cpp srcs/WebServer.cpp
 OBJS = $(SRCS:.cpp=.o) 
