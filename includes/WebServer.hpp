@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/08 13:45:01 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/10 18:00:04 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <poll.h>
+#include <vector>
 
 class WebServer {
 public:
