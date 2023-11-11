@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/11 15:44:42 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/11 15:45:30 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,24 +127,6 @@ void WebServer::sendFileResponse(int clientSocket, const std::string& filename)
     }
 }
 
-void WebServer::sendTextResponse(int clientSocket, const std::string& message) 
-{
-    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + my_to_string(message.size()) + "\r\n\r\n" + message;
-    send(clientSocket, response.c_str(), response.size(), 0);
-}
-
-void WebServer::sendNotFoundResponse(int clientSocket) 
-{
-    std::string response = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><body><h1>404 Not Found</h1></body></html>";
-    send(clientSocket, response.c_str(), response.size(), 0);
-}
-
-void WebServer::sendBadRequestResponse(int clientSocket) 
-{
-    std::string response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<html><body><h1>400 Bad Request</h1></body></html>";
-    send(clientSocket, response.c_str(), response.size(), 0);
-}
-
 void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestStream) 
 {
     int contentLength = 0;
@@ -199,4 +181,22 @@ void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestSt
 
     shutdown(clientSocket, SHUT_RDWR);
     close(clientSocket);
+}
+
+void WebServer::sendTextResponse(int clientSocket, const std::string& message) 
+{
+    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + my_to_string(message.size()) + "\r\n\r\n" + message;
+    send(clientSocket, response.c_str(), response.size(), 0);
+}
+
+void WebServer::sendNotFoundResponse(int clientSocket) 
+{
+    std::string response = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><body><h1>404 Not Found</h1></body></html>";
+    send(clientSocket, response.c_str(), response.size(), 0);
+}
+
+void WebServer::sendBadRequestResponse(int clientSocket) 
+{
+    std::string response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<html><body><h1>400 Bad Request</h1></body></html>";
+    send(clientSocket, response.c_str(), response.size(), 0);
 }
