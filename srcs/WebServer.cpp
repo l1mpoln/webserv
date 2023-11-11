@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/10 20:28:15 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/11 15:30:26 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ WebServer::WebServer()
     serverAddress.sin_port = htons(8080);
 
     bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
-    listen(serverSocket, 5);
+    listen(serverSocket, 100);
 
     fds.push_back({serverSocket, POLLIN});
 }
@@ -62,6 +62,7 @@ void WebServer::start()
                     if (bytesRead > 0) 
                     {
                         std::string request(buffer, bytesRead);
+                        std::cerr << request << std::endl;
                         handleRequest(fds[i].fd, request);
                     } 
                     else 
@@ -86,11 +87,11 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
     {
         if (path == "/")
             sendFileResponse(clientSocket, "data/index.html");
-        else if (path == "/hello")
-            sendTextResponse(clientSocket, "Hello, World!");
+        else if (path == "/upload_checker")
+            sendFileResponse(clientSocket, "data/upload_checker.html");
         else
             sendNotFoundResponse(clientSocket);
-    } 
+    }
     else if (method == "POST") 
     {
         if (path == "/upload")
@@ -146,7 +147,39 @@ void WebServer::sendBadRequestResponse(int clientSocket)
 
 void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestStream) 
 {
-    // Обработка загрузки файла
-    // В этой функции вы можете прочитать тело запроса и сохранить файл на сервере.
-    // Пример работы с загрузкой файлов не предоставляется в данном ответе.
+    std::cerr << "IN the file upload" << std::endl;
+    std::string line;
+    while (std::getline(requestStream, line)) 
+    {
+        if (line == "\r") 
+            break;
+    }
+
+    std::cerr << "IN the file upload2" << std::endl;
+    std::ostringstream fileData;
+    char buffer[1024];
+    int bytesRead;
+    while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0) 
+        fileData.write(buffer, bytesRead);
+
+    std::cerr << "IN the file upload3" << std::endl;
+    if (bytesRead == 0) 
+    {
+        std::ofstream outputFile("uploaded_file.txt", std::ios::binary);
+        if (outputFile.is_open()) 
+        {
+            std::cerr << "IN the file upload4" << std::endl;
+            outputFile << fileData.str();
+            outputFile.close();
+            std::cerr << "File uploaded successfully.\n";
+        } 
+        else 
+            std::cerr << "Unable to open the output file.\n";
+    } 
+    else 
+        std::cerr << "Error reading file data.\n";
+
+    std::cerr << "IN the file upload5" << std::endl;
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
 }
