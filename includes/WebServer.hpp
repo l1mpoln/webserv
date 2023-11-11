@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/10 20:25:07 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/11 15:33:11 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <vector>
+#include <cstdlib>
 
 class WebServer 
 {

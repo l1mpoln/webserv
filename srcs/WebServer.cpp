@@ -6,7 +6,7 @@
 /*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/11 15:30:26 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2023/11/11 15:44:42 by vkuzmin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,23 +147,37 @@ void WebServer::sendBadRequestResponse(int clientSocket)
 
 void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestStream) 
 {
-    std::cerr << "IN the file upload" << std::endl;
+    int contentLength = 0;
     std::string line;
+    
     while (std::getline(requestStream, line)) 
     {
         if (line == "\r") 
             break;
+        else if (line.find("Content-Length:") != std::string::npos) 
+            contentLength = atoi(line.substr(line.find(":") + 1).c_str());
     }
-
-    std::cerr << "IN the file upload2" << std::endl;
+    std::cerr << "Content-Length: " << contentLength << std::endl;
     std::ostringstream fileData;
     char buffer[1024];
-    int bytesRead;
-    while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0) 
+    int bytesRead = 0;
+    int totalBytesRead = 0;
+    while (totalBytesRead < contentLength) 
+    {
+        bytesRead = recv(clientSocket, buffer, (sizeof(buffer) < (contentLength - totalBytesRead)) ? sizeof(buffer) : (contentLength - totalBytesRead), 0);
+        if (bytesRead <= 0) 
+        {
+            std::cerr << "Error reading file data.\n";
+            std::string response = "HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to read file data.\n";
+            send(clientSocket, response.c_str(), response.size(), 0);
+            shutdown(clientSocket, SHUT_RDWR);
+            close(clientSocket);
+            return;
+        }
+        totalBytesRead += bytesRead;
         fileData.write(buffer, bytesRead);
-
-    std::cerr << "IN the file upload3" << std::endl;
-    if (bytesRead == 0) 
+    }
+    if (totalBytesRead == contentLength) 
     {
         std::ofstream outputFile("uploaded_file.txt", std::ios::binary);
         if (outputFile.is_open()) 
@@ -172,14 +186,17 @@ void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestSt
             outputFile << fileData.str();
             outputFile.close();
             std::cerr << "File uploaded successfully.\n";
+            std::string response = "HTTP/1.1 200 OK\r\n\r\nFile uploaded successfully.\n";
+            send(clientSocket, response.c_str(), response.size(), 0);
         } 
         else 
+        {
             std::cerr << "Unable to open the output file.\n";
-    } 
-    else 
-        std::cerr << "Error reading file data.\n";
+            std::string response = "HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to open the output file.\n";
+            send(clientSocket, response.c_str(), response.size(), 0);
+        }
+    }
 
-    std::cerr << "IN the file upload5" << std::endl;
     shutdown(clientSocket, SHUT_RDWR);
     close(clientSocket);
 }
