@@ -1,24 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   script_1.js                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/11/07 22:26:40 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/04 14:41:10 by fbardeau         ###   ########.fr       */
+/*   Created: 2023/12/13 19:31:55 by fbardeau          #+#    #+#             */
+/*   Updated: 2023/12/13 19:31:56 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/WebServer.hpp"
-
-int main(int argc, char** argv) 
-{
-    if (argc != 2)
-        return (cout << "not enought argument" << endl, 0);
-    
-    WebServer server(argv[1]);
-    server.start();
-
-    return 0;
-}

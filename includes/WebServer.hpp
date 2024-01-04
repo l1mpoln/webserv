@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vkuzmin <vkuzmin@student.42nice.fr>        +#+  +:+       +#+        */
+/*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2023/11/11 15:33:11 by vkuzmin          ###   ########.fr       */
+/*   Updated: 2024/01/04 14:43:47 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,16 @@
 #include <poll.h>
 #include <vector>
 #include <cstdlib>
+#include <set>
+#include <sstream>
+#include "../includes/ConfigParse.hpp"
+using namespace std; 
 
-class WebServer 
+class WebServer
 {
     public:
-        WebServer();
+        WebServer(std::string config_file_name);
         ~WebServer();
-
         void start();
 
     private:
@@ -39,10 +42,20 @@ class WebServer
         void sendNotFoundResponse(int clientSocket);
         void sendBadRequestResponse(int clientSocket);
         void handleFileUpload(int clientSocket, std::istringstream& requestStream);
-
+        bool isListeningSocket(int fd);
+        
     private:
+        ConfigParse config;
+        int serverPort;  //For config
+        std::string defaultPage;//For config
+        std::string error_page404;//For config
+        
+        std::set<int> listeningSocket;
         int serverSocket;
         std::vector<pollfd> fds;
+        pollfd _fd;
 };
+
+std::string trim(const std::string& str);
 
 #endif
