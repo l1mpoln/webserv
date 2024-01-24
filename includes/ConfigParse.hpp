@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/13 19:32:47 by fbardeau          #+#    #+#             */
-/*   Updated: 2024/01/04 15:10:06 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/22 15:30:39 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ class ConfigParse
         std::string get_errorPage404();
         std::string get_errorPage403();
         std::string get_errorPage504();
-        std::string get_serverIP();
+        std::vector<unsigned int> get_serverIP();
         std::string get_clientMaxBodySize();
         std::string get_autoindex();
         std::string get_redirect();

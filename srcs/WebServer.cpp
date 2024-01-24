@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/04 15:24:43 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/24 14:04:03 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,8 @@ std::string my_to_string(T value)
 
 WebServer::WebServer(std::string config_file_name) 
 {
-    vector<int> Ports;
-    vector<int>::iterator it;
+    vector<unsigned int> Ports;
+    vector<unsigned int>::iterator it;
     config.loadConfig(config_file_name);
     ////
     cout <<"ser : |" << config.get_serverName() << "|" << endl;
@@ -34,7 +34,8 @@ WebServer::WebServer(std::string config_file_name)
     cout <<"err : |" << config.get_errorPage404() << "|" << endl;
     cout <<"err : |" << config.get_errorPage403() << "|" << endl;
     cout <<"err : |" << config.get_errorPage504() << "|" << endl;
-    cout <<"ser : |" << config.get_serverIP() << "|" << endl;
+    Ports = config.get_serverIP();
+    //cout <<"ser : |" << config.get_serverIP() << "|" << endl;
     cout <<"cli : |" << config.get_clientMaxBodySize() << "|" << endl;
     cout <<"aut : |" << config.get_autoindex() << "|" << endl;
     cout <<"red : |" << config.get_redirect() << "|" << endl;
@@ -48,8 +49,7 @@ WebServer::WebServer(std::string config_file_name)
     
 
     ////
-    Ports.push_back(8080);
-    Ports.push_back(3000);
+    
     for (it = Ports.begin(); it != Ports.end(); ++it) // check multi port
     {
         int port = *it;
@@ -69,6 +69,8 @@ WebServer::WebServer(std::string config_file_name)
         _fd.events = POLLIN;
         listeningSocket.insert(serverSocket);
         fds.push_back(_fd);
+        //NEW
+        listeningPortMap[serverSocket] = port;
         //fds.push_back({serverSocket, POLLIN}); // c++11
     }
 }
@@ -82,31 +84,40 @@ void WebServer::start() {
     while (1) {
         int result = poll(fds.data(), fds.size(), -1);
 
-        if (result > 0) 
-        {
-            for (size_t i = 0; i < fds.size(); ++i) 
-            {
-                if (fds[i].revents & POLLIN)
-                {
-                    if (isListeningSocket(fds[i].fd)) 
-                    { // check if the socket listen
+        if (result > 0) {
+            for (size_t i = 0; i < fds.size(); ++i) {
+                if (fds[i].revents & POLLIN) {
+                    if (isListeningSocket(fds[i].fd)) {
+                        // Accepter de nouvelles connexions
                         int clientSocket = accept(fds[i].fd, NULL, NULL);
+                        unsigned int port = listeningPortMap[fds[i].fd];
+                        clientSocketToPortMap[clientSocket] = port;
                         _fd.fd = clientSocket;
                         _fd.events = POLLIN;
                         fds.push_back(_fd);
-                    } 
-                    else 
-                    {    // check client request
-                        char buffer[1024];
+                    } else {
+                        // Gérer la requête du client
+                        char buffer[4096];
                         int bytesRead = recv(fds[i].fd, buffer, sizeof(buffer), 0);
                         if (bytesRead > 0) {
                             std::string request(buffer, bytesRead);
-                            std::cerr << request << std::endl;
-                            handleRequest(fds[i].fd, request);
-                        } 
-                        else 
-                        {
+
+                            // Vérifier si la taille du corps de la requête dépasse le maximum autorisé
+                            int maxBodySize = 1000;//atoi(config.get_clientMaxBodySize().c_str()) * 1000;
+                            if (request.size() > maxBodySize) {
+                                sendBadRequestResponse(fds[i].fd);//, "Request body too large");
+                                close(fds[i].fd);
+                                clientSocketToPortMap.erase(fds[i].fd);
+                                fds.erase(fds.begin() + i);
+                                --i;
+                            } else {
+                                std::cerr << request << std::endl;
+                                handleRequest(fds[i].fd, request);
+                            }
+                        } else {
+                            // Fermer la connexion si aucune donnée n'est reçue
                             close(fds[i].fd);
+                            clientSocketToPortMap.erase(fds[i].fd);
                             fds.erase(fds.begin() + i);
                             --i;
                         }
@@ -116,6 +127,56 @@ void WebServer::start() {
         }
     }
 }
+
+/*void WebServer::start()
+{
+    while (1) {
+        int result = poll(fds.data(), fds.size(), -1);
+
+        if (result > 0) 
+        {
+            for (size_t i = 0; i < fds.size(); ++i) 
+            {
+                if (fds[i].revents & POLLIN)
+                {
+                    if (isListeningSocket(fds[i].fd)) 
+                    { // check if the socket listen
+                        int clientSocket = accept(fds[i].fd, NULL, NULL);
+                        //NEW
+                         unsigned int port = listeningPortMap[fds[i].fd]; // Trouve le port associé
+                        clientSocketToPortMap[clientSocket] = port;
+                        _fd.fd = clientSocket;
+                        _fd.events = POLLIN;
+                        fds.push_back(_fd);
+                    } 
+                    else 
+                    {    // check client request
+                        char buffer[4096];
+                        int bytesRead = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+                        if (bytesRead > 0) {
+                            if (bytesRead > atoi(config.get_clientMaxBodySize().c_str()) * 1000)
+                            {
+                               sendBadRequestResponse(fds[i].fd);
+                               close(fds[i].fd);
+                               continue;
+                            }
+                            std::string request(buffer, bytesRead);
+                            std::cerr << request << std::endl;
+                            handleRequest(fds[i].fd, request);
+                        } 
+                        else 
+                        {
+                            close(fds[i].fd);
+                            clientSocketToPortMap.erase(fds[i].fd);
+                            fds.erase(fds.begin() + i);
+                            --i;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}*/
 
 bool WebServer::isListeningSocket(int fd)
 {
@@ -128,10 +189,25 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
     std::string method, path, version;
     requestStream >> method >> path >> version;
 
+    if (method != "GET" && method != "POST" && method != "DELETE") {
+    sendBadRequestResponse(clientSocket);
+        return;
+    }
+    if (path.find("..") != std::string::npos) {
+        sendBadRequestResponse(clientSocket);
+        cout << "DEBUG_00";
+        return;
+    }
+    // Version HTTP
+    if (version != "HTTP/1.1") {
+        sendBadRequestResponse(clientSocket);
+        cout << "DEBUG_01";
+        return;
+    }
     if (method == "GET") 
     {
         if (path == "/")
-            sendFileResponse(clientSocket, "data/index.html");
+            sendFileResponse(clientSocket, config.get_mainPage());
         else if (path == "/upload_checker")
             sendFileResponse(clientSocket, "data/upload_checker.html");
         else
@@ -142,7 +218,7 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
         if (path == "/upload")
             handleFileUpload(clientSocket, requestStream);
         else
-            sendNotFoundResponse(clientSocket);
+            sendTextResponse(clientSocket, "HTTP/1.1 200 OK\n");    //sendNotFoundResponse(clientSocket);
     } 
     else if (method == "DELETE") 
     {
@@ -155,19 +231,30 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
         sendBadRequestResponse(clientSocket);
 }
 
-void WebServer::sendFileResponse(int clientSocket, const std::string& filename) 
-{
+void WebServer::sendFileResponse(int clientSocket, const std::string& filename) {
     std::ifstream file(filename.c_str());
-    if (file.is_open()) 
-    {
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        std::string content = buffer.str();
-        std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + my_to_string(content.size()) + "\r\n\r\n" + content;
+    if (file.is_open()) {
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+
+        unsigned int port = clientSocketToPortMap[clientSocket];
+        std::ostringstream portStream;
+        portStream << port;
+        std::string portStr = portStream.str();
+
+        std::string::size_type pos = content.find("{PORT}");
+        while (pos != std::string::npos) {
+            content.replace(pos, 6, portStr);
+            pos = content.find("{PORT}", pos + portStr.length());
+        }
+
+        std::ostringstream responseStream;
+        responseStream << "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: "
+                       << content.size() << "\r\n\r\n" << content;
+        std::string response = responseStream.str();
+
         send(clientSocket, response.c_str(), response.size(), 0);
-    } 
-    else 
-    {
+    } else {
         sendNotFoundResponse(clientSocket);
     }
 }
@@ -223,7 +310,7 @@ void WebServer::handleFileUpload(int clientSocket, std::istringstream& requestSt
             send(clientSocket, response.c_str(), response.size(), 0);
         }
     }
-
+    
     shutdown(clientSocket, SHUT_RDWR);
     close(clientSocket);
 }
@@ -237,7 +324,7 @@ void WebServer::sendTextResponse(int clientSocket, const std::string& message)
 
 void WebServer::sendNotFoundResponse(int clientSocket)
 {
-    std::string filename = "./Error_Page/404.html";
+    std::string filename = config.get_errorPage404();
     std::ifstream file(filename.c_str());
     if (file.is_open()) {
         std::ostringstream buffer;

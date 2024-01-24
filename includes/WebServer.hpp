@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/04 14:43:47 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/22 17:21:36 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 #include <vector>
 #include <cstdlib>
 #include <set>
+#include <map>
 #include <sstream>
 #include "../includes/ConfigParse.hpp"
 using namespace std; 
@@ -54,6 +55,9 @@ class WebServer
         int serverSocket;
         std::vector<pollfd> fds;
         pollfd _fd;
+        std::map<int, unsigned int> listeningPortMap;
+        std::map<int, unsigned int> clientSocketToPortMap;
+
 };
 
 std::string trim(const std::string& str);

@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/04 13:23:54 by fbardeau          #+#    #+#             */
-/*   Updated: 2024/01/04 14:17:14 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/23 09:35:04 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,12 +82,49 @@ std::string ConfigParse::get_errorPage504(){
 	return this->_errorPage504;
 }
 
-std::string ConfigParse::get_serverIP(){
-	return this->_serverIP;
+std::vector<unsigned int> ConfigParse::get_serverIP()
+{
+ 	std::vector<unsigned int> validIPs;
+	std::string ip;
+	
+	for (int i = 0; _serverIP[i] != '\0'; ++i)
+	{
+		if (isdigit(_serverIP[i]))
+		{
+			ip = ip + _serverIP[i];
+		}
+		else
+		{	
+			if (!ip.empty()){	
+				validIPs.push_back(static_cast<unsigned int>(std::atoi(ip.c_str())));
+				ip.clear();
+			}
+		}
+	}
+	if (!ip.empty())
+				validIPs.push_back(static_cast<unsigned int>(std::atoi(ip.c_str())));
+    // Afficher les adresses IP valides
+   /* std::cout << "Adresses IP valides :" << std::endl;
+	
+    for (std::vector <unsigned int>::iterator it = validIPs.begin(); it != validIPs.end(); ++it) 
+	{
+        std::cout << *it << std::endl;
+    }*/
+	return validIPs;
 }
 
 std::string ConfigParse::get_clientMaxBodySize(){
-	return this->_clientMaxBodySize;
+	
+	std::string BodySize;
+	
+	for (int i = 0; this->_clientMaxBodySize[i]; ++i)
+	{
+		if (isdigit(this->_clientMaxBodySize[i]))
+		{
+			BodySize += _clientMaxBodySize[i];
+		}
+	}
+	return BodySize;
 }
 
 std::string ConfigParse::get_autoindex(){
