@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/04 13:23:54 by fbardeau          #+#    #+#             */
-/*   Updated: 2024/01/23 09:35:04 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/24 15:13:45 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,11 +22,17 @@ void ConfigParse::set_mainPage(std::string mainPage){
 void ConfigParse::set_errorPage404(std::string error404){
 	this->_errorPage404 = error404;
 }
-void ConfigParse::set_errorPage403(std::string error403){
-	this->_errorPage403 = error403;
+void ConfigParse::set_errorPage400(std::string error400){
+	this->_errorPage400 = error400;
+}
+void ConfigParse::set_errorPage413(std::string error413){
+	this->_errorPage413 = error413;
 }
 void ConfigParse::set_errorPage504(std::string error504){
 	this->_errorPage504 = error504;
+}
+void ConfigParse::set_errorPage500(std::string error500){
+	this->_errorPage500 = error500;
 }
 void ConfigParse::set_serverIP(std::string serverIP){
 	this->_serverIP = serverIP;
@@ -74,12 +80,20 @@ std::string ConfigParse::get_errorPage404(){
 	return this->_errorPage404;
 }
 
-std::string ConfigParse::get_errorPage403(){
-	return this->_errorPage403;
+std::string ConfigParse::get_errorPage400(){
+	return this->_errorPage400;
+}
+
+std::string ConfigParse::get_errorPage413(){
+	return this->_errorPage413;
 }
 
 std::string ConfigParse::get_errorPage504(){
 	return this->_errorPage504;
+}
+
+std::string ConfigParse::get_errorPage500(){
+	return this->_errorPage500;
 }
 
 std::vector<unsigned int> ConfigParse::get_serverIP()

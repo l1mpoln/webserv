@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/13 19:32:47 by fbardeau          #+#    #+#             */
-/*   Updated: 2024/01/22 15:30:39 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/24 15:13:19 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,10 @@ class ConfigParse
         std::string _serverName;
         std::string _mainPage;
         std::string _errorPage404;
-        std::string _errorPage403;
+        std::string _errorPage400;
         std::string _errorPage504;
+        std::string _errorPage413;
+        std::string _errorPage500;
         std::string _serverIP;
         std::string _clientMaxBodySize;
         std::string _autoindex;
@@ -42,8 +44,10 @@ class ConfigParse
         void set_serverName(std::string serverName);
         void set_mainPage(std::string mainPage);
         void set_errorPage404(std::string error404);
-        void set_errorPage403(std::string error403);
+        void set_errorPage400(std::string error403);
+        void set_errorPage413(std::string error413);
         void set_errorPage504(std::string error504);
+        void set_errorPage500(std::string error500);
         void set_serverIP(std::string serverIP);
         void set_clientMaxBodySize(std::string clientMaxBdySize);
         void set_autoindex(std::string autoindex);
@@ -59,8 +63,10 @@ class ConfigParse
         std::string get_serverName();
         std::string get_mainPage();
         std::string get_errorPage404();
-        std::string get_errorPage403();
+        std::string get_errorPage400();
+        std::string get_errorPage413();
         std::string get_errorPage504();
+        std::string get_errorPage500();
         std::vector<unsigned int> get_serverIP();
         std::string get_clientMaxBodySize();
         std::string get_autoindex();

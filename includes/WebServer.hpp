@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/22 17:21:36 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/24 17:51:16 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #define WEBSERVER_HPP
 
 #include <iostream>
+#include <sys/stat.h>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -44,7 +45,10 @@ class WebServer
         void sendBadRequestResponse(int clientSocket);
         void handleFileUpload(int clientSocket, std::istringstream& requestStream);
         bool isListeningSocket(int fd);
-        
+        int checkClientMaxBodySize(char *buffer, int bytesRead, int i);
+        void sendError413(int clientSocket);
+        void sendError500(int clientSocket);
+    
     private:
         ConfigParse config;
         int serverPort;  //For config

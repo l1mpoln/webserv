@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/05 16:22:28 by fbardeau          #+#    #+#             */
-/*   Updated: 2024/01/04 15:23:37 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/24 15:12:29 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,13 +48,17 @@ void ConfigParse::loadConfig(const std::string& configFileName)
             set_serverIP(value);//serverPort = std::stoi(value);
         } else if (key == "main") {
             set_mainPage(value);
-        } else if (key == "error_404") {
-            set_errorPage404(value);
-        } else if (key == "error_403") {
-            set_errorPage403(value);
+        }else if (key == "error_404") {
+            set_errorPage404(value); 
+        }else if (key == "error_413") {
+            set_errorPage413(value);
+        } else if (key == "error_400") {
+            set_errorPage400(value);
         } else if (key == "error_504") {
             set_errorPage504(value);
-        } else if (key == "client_max_body_size") {
+        } else if (key == "error_500") {
+            set_errorPage500(value);
+        }else if (key == "client_max_body_size") {
             set_clientMaxBodySize(value);
         } else if (key == "autoindex") {
             set_autoindex(value);
