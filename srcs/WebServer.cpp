@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/24 18:01:33 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/25 18:21:18 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,53 +25,38 @@ std::string my_to_string(T value)
 
 WebServer::WebServer(std::string config_file_name) 
 {
-    vector<unsigned int> Ports;
-    vector<unsigned int>::iterator it;
+    vector<ServerConfig>::iterator it;
     config.loadConfig(config_file_name);
-    ////
-    cout <<"ser : |" << config.get_serverName() << "|" << endl;
-    cout <<"mai : |" << config.get_mainPage() << "|" << endl;
-    cout <<"err : |" << config.get_errorPage404() << "|" << endl;
-    cout <<"err : |" << config.get_errorPage400() << "|" << endl;
-    cout <<"err : |" << config.get_errorPage504() << "|" << endl;
-    Ports = config.get_serverIP();
-    //cout <<"ser : |" << config.get_serverIP() << "|" << endl;
-    cout <<"cli : |" << config.get_clientMaxBodySize() << "|" << endl;
-    cout <<"aut : |" << config.get_autoindex() << "|" << endl;
-    cout <<"red : |" << config.get_redirect() << "|" << endl;
-    cout <<"cgi : |" << config.get_cgi() << "|" << endl;
-    cout <<"upl : |" << config.get_uploadPath() << "|" << endl;
-    cout <<"den : |" << config.get_deny() << "|" << endl;
-    cout <<"all : |" << config.get_allow() << "|" << endl;
-    cout <<"max : |" << config.get_maxClients() << "|" << endl;
-    cout <<"log : |" << config.get_logPath() << "|" << endl;
-    cout <<"tim : |" << config.get_timeout() << "|" << endl;
-    
 
-    ////
-    
-    for (it = Ports.begin(); it != Ports.end(); ++it) // check multi port
+    for(it = config.servers.begin(); it != config.servers.end(); ++it)
     {
-        int port = *it;
-        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-        struct sockaddr_in serverAddress;
-        serverAddress.sin_family = AF_INET;
-        serverAddress.sin_addr.s_addr = INADDR_ANY;
-        serverAddress.sin_port = htons(port);
-    
-        bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
-        cout << "Bind : " << serverSocket << endl;
-        listen(serverSocket, atoi(config.get_maxClients().c_str()));
-        cout << "Listening on http://localhost:" << port << endl;
-    
-        _fd.fd = serverSocket;
-        _fd.events = POLLIN;
-        listeningSocket.insert(serverSocket);
-        fds.push_back(_fd);
-        //NEW
-        listeningPortMap[serverSocket] = port;
-        //fds.push_back({serverSocket, POLLIN}); // c++11
+        std::vector<std::string>::iterator portIt;
+        for(portIt = it->_listenPorts.begin(); portIt != it->_listenPorts.end(); ++portIt) 
+        {
+            int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+            struct sockaddr_in serverAddress;
+            serverAddress.sin_family = AF_INET;
+            serverAddress.sin_addr.s_addr = INADDR_ANY;
+            int port = atoi(portIt->c_str());
+            cout << "|" << port << "|" <<endl;
+            serverAddress.sin_port = htons(port);
+        
+            bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
+            cout << "Bind: " << serverSocket << " on port " << port << endl;
+            listen(serverSocket, 100);
+       
+            cout << "Listening on http://" << it->_serverName << ":" << port << endl;
+            
+            socketToServerConfigMap[serverSocket] = *it;
+            cout << socketToServerConfigMap[serverSocket]._clientMaxBodySize << endl;
+            _fd.fd = serverSocket;
+            _fd.events = POLLIN;
+            listeningSocket.insert(serverSocket);
+            fds.push_back(_fd);
+
+            listeningPortMap[serverSocket] = port;
+        }
     }
 }
 
@@ -81,6 +66,7 @@ WebServer::~WebServer()
 }
 
 void WebServer::start() {
+   
     while (1) 
     {
         int result = poll(fds.data(), fds.size(), -1);
@@ -92,7 +78,10 @@ void WebServer::start() {
                     if (isListeningSocket(fds[i].fd))
                     {
                         int clientSocket = accept(fds[i].fd, NULL, NULL);
+                        
+                         socketToServerConfigMap[clientSocket] = socketToServerConfigMap[fds[i].fd];
                         unsigned int port = listeningPortMap[fds[i].fd];
+                        
                         clientSocketToPortMap[clientSocket] = port;
                         _fd.fd = clientSocket;
                         _fd.events = POLLIN;
@@ -122,7 +111,8 @@ void WebServer::start() {
 int WebServer::checkClientMaxBodySize(char *buffer, int bytesRead, int i)
 {
     std::string request(buffer, bytesRead);
-    int maxBodySize = atoi(config.get_clientMaxBodySize().c_str()) * 1000;
+    //int maxBodySize = atoi(config.get_clientMaxBodySize().c_str()) * 1000;
+    int maxBodySize = atoi(socketToServerConfigMap[fds[i].fd]._clientMaxBodySize.c_str()) * 1000;
     size_t bodyPos = request.find("\r\n\r\n");
     std::string requestBody = (bodyPos != std::string::npos) ? request.substr(bodyPos + 4) : "";
     
@@ -176,16 +166,17 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
         cout << "DEBUG_01";
         return;
     }
+    std::cout << "|" << socketToServerConfigMap[clientSocket]._index << "|" << endl;
     if (method == "GET") 
     {
         if (path == "/")
-            sendFileResponse(clientSocket, config.get_mainPage());
+            sendFileResponse(clientSocket, socketToServerConfigMap[clientSocket]._index);
         else if (path == "/upload_checker")
             sendFileResponse(clientSocket, "data/upload_checker.html");
         else
         {
             if (isDirectory(path.substr(1)))
-                sendFileResponse(clientSocket, config.get_mainPage());
+                sendFileResponse(clientSocket, socketToServerConfigMap[clientSocket]._index);
             else
                 sendFileResponse(clientSocket, path.substr(1));
         }
@@ -300,7 +291,7 @@ void WebServer::sendTextResponse(int clientSocket, const std::string& message)
 void WebServer::sendNotFoundResponse(int clientSocket)
 {
     cerr << "Error 404: Page Not Found" << endl;
-    std::string filename = config.get_errorPage404();
+    std::string filename = socketToServerConfigMap[clientSocket]._error404;
     std::ifstream file(filename.c_str());
     if (file.is_open()) {
         std::ostringstream buffer;
@@ -314,7 +305,7 @@ void WebServer::sendNotFoundResponse(int clientSocket)
 
 void WebServer::sendBadRequestResponse(int clientSocket) 
 {
-    std::string filename = config.get_errorPage400();
+    std::string filename = socketToServerConfigMap[clientSocket]._error400;
     std::ifstream file(filename.c_str());
     if (file.is_open()) {
         std::ostringstream buffer;
@@ -328,7 +319,7 @@ void WebServer::sendBadRequestResponse(int clientSocket)
 
 void WebServer::sendError413(int clientSocket) 
 {
-    std::string filename = config.get_errorPage413();
+    std::string filename = socketToServerConfigMap[clientSocket]._error413;
     std::ifstream file(filename.c_str());
     if (file.is_open()) {
         std::ostringstream buffer;
@@ -344,7 +335,7 @@ void WebServer::sendError413(int clientSocket)
 void WebServer::sendError500(int clientSocket) 
 {
     std::cerr << "Unable to open the output file.\n";
-    std::string filename = config.get_errorPage500();
+    std::string filename = socketToServerConfigMap[clientSocket]._error500;
     std::ifstream file(filename.c_str());
     if (file.is_open()) {
         std::ostringstream buffer;

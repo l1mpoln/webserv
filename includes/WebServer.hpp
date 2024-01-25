@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/24 17:51:16 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/01/25 14:03:52 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,9 @@
 #include <set>
 #include <map>
 #include <sstream>
+#include <cstring>
 #include "../includes/ConfigParse.hpp"
+#include "../includes/ServerConfig.hpp"
 using namespace std; 
 
 class WebServer
@@ -51,6 +53,9 @@ class WebServer
     
     private:
         ConfigParse config;
+        std::map<int, ServerConfig> socketToServerConfigMap;
+        
+        
         int serverPort;  //For config
         std::string defaultPage;//For config
         std::string error_page404;//For config
