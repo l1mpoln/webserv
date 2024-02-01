@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:35 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/25 14:03:52 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/02/01 18:13:22 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,9 +28,13 @@
 #include <map>
 #include <sstream>
 #include <cstring>
+#include <cstdlib>
+#include <csignal>
 #include "../includes/ConfigParse.hpp"
 #include "../includes/ServerConfig.hpp"
 using namespace std; 
+
+
 
 class WebServer
 {
@@ -40,7 +44,7 @@ class WebServer
         void start();
 
     private:
-        void handleRequest(int clientSocket, const std::string& request);
+        bool handleRequest(int clientSocket, const std::string& request);
         void sendFileResponse(int clientSocket, const std::string& filename);
         void sendTextResponse(int clientSocket, const std::string& message);
         void sendNotFoundResponse(int clientSocket);
@@ -50,17 +54,18 @@ class WebServer
         int checkClientMaxBodySize(char *buffer, int bytesRead, int i);
         void sendError413(int clientSocket);
         void sendError500(int clientSocket);
+        
     
     private:
         ConfigParse config;
         std::map<int, ServerConfig> socketToServerConfigMap;
         
-        
+        std::set<int> listeningSocket;
         int serverPort;  //For config
         std::string defaultPage;//For config
         std::string error_page404;//For config
         
-        std::set<int> listeningSocket;
+        
         int serverSocket;
         std::vector<pollfd> fds;
         pollfd _fd;
@@ -69,6 +74,8 @@ class WebServer
 
 };
 
+//void handleSignal(int signal);
 std::string trim(const std::string& str);
+
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: fbardeau <fbardeau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/08 13:38:49 by vkuzmin           #+#    #+#             */
-/*   Updated: 2024/01/25 18:21:18 by fbardeau         ###   ########.fr       */
+/*   Updated: 2024/02/01 18:16:41 by fbardeau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "../includes/ConfigParse.hpp"
 
 using namespace std;
+
 
 template <typename T>
 std::string my_to_string(T value) 
@@ -27,6 +28,7 @@ WebServer::WebServer(std::string config_file_name)
 {
     vector<ServerConfig>::iterator it;
     config.loadConfig(config_file_name);
+    //signal(SIGINT, handleSignal);
 
     for(it = config.servers.begin(); it != config.servers.end(); ++it)
     {
@@ -35,11 +37,23 @@ WebServer::WebServer(std::string config_file_name)
         for(portIt = it->_listenPorts.begin(); portIt != it->_listenPorts.end(); ++portIt) 
         {
             int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+            if (serverSocket == -1) {
+                perror("socket");
+                continue; // Ou gérer l'erreur d'une autre manière
+            }
+
+            //
+            int yes = 1;
+            if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+                perror("setsockopt");
+                close(serverSocket); // S'assurer de fermer le socket en cas d'erreur
+                continue;
+            }
+            //
             struct sockaddr_in serverAddress;
             serverAddress.sin_family = AF_INET;
             serverAddress.sin_addr.s_addr = INADDR_ANY;
             int port = atoi(portIt->c_str());
-            cout << "|" << port << "|" <<endl;
             serverAddress.sin_port = htons(port);
         
             bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
@@ -49,7 +63,6 @@ WebServer::WebServer(std::string config_file_name)
             cout << "Listening on http://" << it->_serverName << ":" << port << endl;
             
             socketToServerConfigMap[serverSocket] = *it;
-            cout << socketToServerConfigMap[serverSocket]._clientMaxBodySize << endl;
             _fd.fd = serverSocket;
             _fd.events = POLLIN;
             listeningSocket.insert(serverSocket);
@@ -62,7 +75,11 @@ WebServer::WebServer(std::string config_file_name)
 
 WebServer::~WebServer() 
 {
-    close(serverSocket);
+    std::set<int>::iterator it;
+    for (it = listeningSocket.begin(); it != listeningSocket.end(); ++it) {
+        close(*it);
+    }
+    
 }
 
 void WebServer::start() {
@@ -111,6 +128,10 @@ void WebServer::start() {
 int WebServer::checkClientMaxBodySize(char *buffer, int bytesRead, int i)
 {
     std::string request(buffer, bytesRead);
+    //
+    if (!handleRequest(fds[i].fd, request))
+        return i;
+    //
     //int maxBodySize = atoi(config.get_clientMaxBodySize().c_str()) * 1000;
     int maxBodySize = atoi(socketToServerConfigMap[fds[i].fd]._clientMaxBodySize.c_str()) * 1000;
     size_t bodyPos = request.find("\r\n\r\n");
@@ -127,7 +148,7 @@ int WebServer::checkClientMaxBodySize(char *buffer, int bytesRead, int i)
     else 
     {
         std::cerr << request << std::endl;
-        handleRequest(fds[i].fd, request);
+        //handleRequest(fds[i].fd, request);
     }
     return i;
 }
@@ -145,26 +166,47 @@ bool isDirectory(const std::string& path)
     return S_ISDIR(statbuf.st_mode);
 }
 
-void WebServer::handleRequest(int clientSocket, const std::string& request) 
+bool WebServer::handleRequest(int clientSocket, const std::string& request) 
 {
     std::istringstream requestStream(request);
     std::string method, path, version;
+    vector<string>::iterator it;
     requestStream >> method >> path >> version;
+    int get = 0; int post = 0; int del = 0 ;
 
+    for (it = socketToServerConfigMap[clientSocket]._methods.begin(); it != socketToServerConfigMap[clientSocket]._methods.end(); ++it)
+    {
+        if (*it == "GET")
+            get = 1;
+        else if (*it == "POST")
+            post = 1;
+        else if (*it == "DELETE")
+            del = 1;
+    }
+    if ((method == "GET" && get == 0) || (method == "POST" && post == 0) || (method == "DELETE" && del == 0))
+    {
+        cerr << "Method " << method << " not allowed" << endl;
+        sendNotFoundResponse(clientSocket);
+        return false;
+    }
     if (method != "GET" && method != "POST" && method != "DELETE") {
-    sendBadRequestResponse(clientSocket);
-        return;
+        cout << "|" << method << "|" << endl;
+        cout << "DEBUG_06\n";
+        sendBadRequestResponse(clientSocket);
+        return false;
     }
     if (path.find("..") != std::string::npos) {
+        
+        cout << "DEBUG_00\n";
         sendBadRequestResponse(clientSocket);
-        cout << "DEBUG_00";
-        return;
+        
+        return false;
     }
     // Version HTTP
     if (version != "HTTP/1.1") {
         sendBadRequestResponse(clientSocket);
-        cout << "DEBUG_01";
-        return;
+        cout << "DEBUG_01\n";
+        return false;
     }
     std::cout << "|" << socketToServerConfigMap[clientSocket]._index << "|" << endl;
     if (method == "GET") 
@@ -193,17 +235,21 @@ void WebServer::handleRequest(int clientSocket, const std::string& request)
         if (path == "/delete")
             sendTextResponse(clientSocket, "File deleted successfully");
         else
+        {    
+            cout << "DEBUG_02\n";
             sendNotFoundResponse(clientSocket);
+        }
     } 
     else
         sendBadRequestResponse(clientSocket);
+    return true;
 }
 
 void WebServer::sendFileResponse(int clientSocket, const std::string& filename) {
     std::ifstream file(filename.c_str());
-    if (file.is_open()) {
+    if (file.is_open()) 
+    {
         std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
 
         unsigned int port = clientSocketToPortMap[clientSocket];
         std::ostringstream portStream;
@@ -222,7 +268,11 @@ void WebServer::sendFileResponse(int clientSocket, const std::string& filename) 
         std::string response = responseStream.str();
 
         send(clientSocket, response.c_str(), response.size(), 0);
-    } else {
+        shutdown(clientSocket, SHUT_RDWR);
+        close(clientSocket);
+    } 
+    else 
+    {
         sendNotFoundResponse(clientSocket);
     }
 }
@@ -301,6 +351,8 @@ void WebServer::sendNotFoundResponse(int clientSocket)
         send(clientSocket, response.c_str(), response.size(), 0);
         file.close();
     }
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
 }
 
 void WebServer::sendBadRequestResponse(int clientSocket) 
@@ -315,6 +367,8 @@ void WebServer::sendBadRequestResponse(int clientSocket)
         send(clientSocket, response.c_str(), response.size(), 0);
         file.close();
     }
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
 }
 
 void WebServer::sendError413(int clientSocket) 
@@ -329,7 +383,8 @@ void WebServer::sendError413(int clientSocket)
         send(clientSocket, response.c_str(), response.size(), 0);
         file.close();
     }
-    
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
 }
 
 void WebServer::sendError500(int clientSocket) 
@@ -345,5 +400,6 @@ void WebServer::sendError500(int clientSocket)
         send(clientSocket, response.c_str(), response.size(), 0);
         file.close();
     }
-    
+    shutdown(clientSocket, SHUT_RDWR);
+    close(clientSocket);
 }
